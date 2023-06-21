@@ -4,11 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:page_transition/page_transition.dart';
 import '../flutter_flow_theme.dart';
-import '/backend/backend.dart';
 
-import '../../auth/base_auth_user_provider.dart';
-import '../../backend/push_notifications/push_notifications_handler.dart'
-    show PushNotificationsHandler;
 import '../../index.dart';
 import '../../main.dart';
 import '../lat_lng.dart';
@@ -26,46 +22,7 @@ class AppStateNotifier extends ChangeNotifier {
   static AppStateNotifier? _instance;
   static AppStateNotifier get instance => _instance ??= AppStateNotifier._();
 
-  BaseAuthUser? initialUser;
-  BaseAuthUser? user;
   bool showSplashImage = true;
-  String? _redirectLocation;
-
-  /// Determines whether the app will refresh and build again when a sign
-  /// in or sign out happens. This is useful when the app is launched or
-  /// on an unexpected logout. However, this must be turned off when we
-  /// intend to sign in/out and then navigate or perform any actions after.
-  /// Otherwise, this will trigger a refresh and interrupt the action(s).
-  bool notifyOnAuthChange = true;
-
-  bool get loading => user == null || showSplashImage;
-  bool get loggedIn => user?.loggedIn ?? false;
-  bool get initiallyLoggedIn => initialUser?.loggedIn ?? false;
-  bool get shouldRedirect => loggedIn && _redirectLocation != null;
-
-  String getRedirectLocation() => _redirectLocation!;
-  bool hasRedirect() => _redirectLocation != null;
-  void setRedirectLocationIfUnset(String loc) => _redirectLocation ??= loc;
-  void clearRedirectLocation() => _redirectLocation = null;
-
-  /// Mark as not needing to notify on a sign in / out when we intend
-  /// to perform subsequent actions (such as navigation) afterwards.
-  void updateNotifyOnAuthChange(bool notify) => notifyOnAuthChange = notify;
-
-  void update(BaseAuthUser newUser) {
-    final shouldUpdate =
-        user?.uid == null || newUser.uid == null || user?.uid != newUser.uid;
-    initialUser ??= newUser;
-    user = newUser;
-    // Refresh the app on auth change unless explicitly marked otherwise.
-    // No need to update unless the user has changed.
-    if (notifyOnAuthChange && shouldUpdate) {
-      notifyListeners();
-    }
-    // Once again mark the notifier as needing to update on auth change
-    // (in order to catch sign in / out events).
-    updateNotifyOnAuthChange(true);
-  }
 
   void stopShowingSplashImage() {
     showSplashImage = false;
@@ -77,185 +34,17 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
       initialLocation: '/',
       debugLogDiagnostics: true,
       refreshListenable: appStateNotifier,
-      errorBuilder: (context, state) =>
-          appStateNotifier.loggedIn ? HomepageWidget() : CreateAccountWidget(),
+      errorBuilder: (context, state) => HomePageWidget(),
       routes: [
         FFRoute(
           name: '_initialize',
           path: '/',
-          builder: (context, _) => appStateNotifier.loggedIn
-              ? HomepageWidget()
-              : CreateAccountWidget(),
+          builder: (context, _) => HomePageWidget(),
         ),
         FFRoute(
-          name: 'Dog_Profile_Page',
-          path: '/dogProfilePage',
-          requireAuth: true,
-          builder: (context, params) => DogProfilePageWidget(),
-        ),
-        FFRoute(
-          name: 'User_Register_Page',
-          path: '/userRegisterPage',
-          builder: (context, params) => UserRegisterPageWidget(),
-        ),
-        FFRoute(
-          name: 'PendingPage',
-          path: '/pendingPage',
-          builder: (context, params) => PendingPageWidget(),
-        ),
-        FFRoute(
-          name: 'Dog_Profile_Page_2',
-          path: '/dogProfilePage2',
-          requireAuth: true,
-          builder: (context, params) => DogProfilePage2Widget(),
-        ),
-        FFRoute(
-          name: 'Hosting_Profile_Page',
-          path: '/Dog_Profile_Page_2Copy',
-          requireAuth: true,
-          builder: (context, params) => HostingProfilePageWidget(),
-        ),
-        FFRoute(
-          name: 'Homepage',
-          path: '/homepage',
-          builder: (context, params) => HomepageWidget(
-            postRef: params.getParam(
-                'postRef', ParamType.DocumentReference, false, ['Posts']),
-            postUser: params.getParam(
-                'postUser', ParamType.DocumentReference, false, ['users']),
-          ),
-        ),
-        FFRoute(
-          name: 'Post_Creation',
-          path: '/postCreation',
-          builder: (context, params) => PostCreationWidget(),
-        ),
-        FFRoute(
-          name: 'Dog_Profile_Page_Update',
-          path: '/dogProfilePageUpdate',
-          requireAuth: true,
-          builder: (context, params) => DogProfilePageUpdateWidget(),
-        ),
-        FFRoute(
-          name: 'Dog_Profile_Page_2_update',
-          path: '/dogProfilePage2Update',
-          requireAuth: true,
-          builder: (context, params) => DogProfilePage2UpdateWidget(),
-        ),
-        FFRoute(
-          name: 'ChatPage_message_each_other',
-          path: '/chatPageMessageEachOther',
-          asyncParams: {
-            'chatUser': getDoc(['users'], UsersRecord.fromSnapshot),
-          },
-          builder: (context, params) => ChatPageMessageEachOtherWidget(
-            chatUser: params.getParam('chatUser', ParamType.Document),
-            test: params
-                .getParam('test', ParamType.DocumentReference, false, ['Help']),
-            chatRef: params.getParam(
-                'chatRef', ParamType.DocumentReference, false, ['chats']),
-          ),
-        ),
-        FFRoute(
-          name: 'Dog_Profile_Page_seconddog',
-          path: '/dogProfilePageSeconddog',
-          requireAuth: true,
-          builder: (context, params) => DogProfilePageSeconddogWidget(),
-        ),
-        FFRoute(
-          name: 'Dog_Profile_Page_2_seconddog',
-          path: '/dogProfilePage2Seconddog',
-          requireAuth: true,
-          builder: (context, params) => DogProfilePage2SeconddogWidget(),
-        ),
-        FFRoute(
-          name: 'Dog_Profile_Page_Update_seconddog',
-          path: '/dogProfilePageUpdateSeconddog',
-          requireAuth: true,
-          builder: (context, params) => DogProfilePageUpdateSeconddogWidget(),
-        ),
-        FFRoute(
-          name: 'Dog_Profile_Page_2_update_seconddog',
-          path: '/dogProfilePage2UpdateSeconddog',
-          requireAuth: true,
-          builder: (context, params) => DogProfilePage2UpdateSeconddogWidget(),
-        ),
-        FFRoute(
-          name: 'Search_Settings',
-          path: '/searchSettings',
-          builder: (context, params) => SearchSettingsWidget(),
-        ),
-        FFRoute(
-          name: 'CreateAccount',
-          path: '/createAccount',
-          builder: (context, params) => CreateAccountWidget(),
-        ),
-        FFRoute(
-          name: 'Login',
-          path: '/login',
-          builder: (context, params) => LoginWidget(),
-        ),
-        FFRoute(
-          name: 'Viewmyprofile',
-          path: '/viewmyprofile',
-          builder: (context, params) => ViewmyprofileWidget(),
-        ),
-        FFRoute(
-          name: 'HomeDrawer',
-          path: '/homeDrawer',
-          asyncParams: {
-            'offer': getDoc(['users'], UsersRecord.fromSnapshot),
-          },
-          builder: (context, params) => HomeDrawerWidget(
-            offer: params.getParam('offer', ParamType.Document),
-          ),
-        ),
-        FFRoute(
-          name: 'View_help_received',
-          path: '/viewHelpReceived',
-          builder: (context, params) => ViewHelpReceivedWidget(
-            helpOfferedbyuser: params.getParam('helpOfferedbyuser',
-                ParamType.DocumentReference, false, ['users']),
-          ),
-        ),
-        FFRoute(
-          name: 'View_otherprofileFromPost',
-          path: '/viewOtherprofileFromPost',
-          builder: (context, params) => ViewOtherprofileFromPostWidget(
-            postUser: params.getParam(
-                'postUser', ParamType.DocumentReference, false, ['users']),
-          ),
-        ),
-        FFRoute(
-          name: 'ReviewFromPost',
-          path: '/reviewFromPost',
-          builder: (context, params) => ReviewFromPostWidget(
-            reviewTo: params.getParam(
-                'reviewTo', ParamType.DocumentReference, false, ['users']),
-          ),
-        ),
-        FFRoute(
-          name: 'ReviewFromHelp',
-          path: '/reviewFromHelp',
-          builder: (context, params) => ReviewFromHelpWidget(
-            reviewFromHelp: params.getParam('reviewFromHelp',
-                ParamType.DocumentReference, false, ['users']),
-          ),
-        ),
-        FFRoute(
-          name: 'HomepageMypost',
-          path: '/homepageMypost',
-          builder: (context, params) => HomepageMypostWidget(
-            postRef: params.getParam(
-                'postRef', ParamType.DocumentReference, false, ['Posts']),
-            postUser: params.getParam(
-                'postUser', ParamType.DocumentReference, false, ['users']),
-          ),
-        ),
-        FFRoute(
-          name: 'View_otherprofileFromHelp',
-          path: '/viewOtherprofileFromHelp',
-          builder: (context, params) => ViewOtherprofileFromHelpWidget(),
+          name: 'HomePage',
+          path: '/homePage',
+          builder: (context, params) => HomePageWidget(),
         )
       ].map((r) => r.toRoute(appStateNotifier)).toList(),
     );
@@ -269,40 +58,6 @@ extension NavParamExtensions on Map<String, String?> {
 }
 
 extension NavigationExtensions on BuildContext {
-  void goNamedAuth(
-    String name,
-    bool mounted, {
-    Map<String, String> pathParameters = const <String, String>{},
-    Map<String, String> queryParameters = const <String, String>{},
-    Object? extra,
-    bool ignoreRedirect = false,
-  }) =>
-      !mounted || GoRouter.of(this).shouldRedirect(ignoreRedirect)
-          ? null
-          : goNamed(
-              name,
-              pathParameters: pathParameters,
-              queryParameters: queryParameters,
-              extra: extra,
-            );
-
-  void pushNamedAuth(
-    String name,
-    bool mounted, {
-    Map<String, String> pathParameters = const <String, String>{},
-    Map<String, String> queryParameters = const <String, String>{},
-    Object? extra,
-    bool ignoreRedirect = false,
-  }) =>
-      !mounted || GoRouter.of(this).shouldRedirect(ignoreRedirect)
-          ? null
-          : pushNamed(
-              name,
-              pathParameters: pathParameters,
-              queryParameters: queryParameters,
-              extra: extra,
-            );
-
   void safePop() {
     // If there is only one route on the stack, navigate to the initial
     // page instead of popping.
@@ -312,19 +67,6 @@ extension NavigationExtensions on BuildContext {
       go('/');
     }
   }
-}
-
-extension GoRouterExtensions on GoRouter {
-  AppStateNotifier get appState => AppStateNotifier.instance;
-  void prepareAuthEvent([bool ignoreRedirect = false]) =>
-      appState.hasRedirect() && !ignoreRedirect
-          ? null
-          : appState.updateNotifyOnAuthChange(false);
-  bool shouldRedirect(bool ignoreRedirect) =>
-      !ignoreRedirect && appState.hasRedirect();
-  void clearRedirectLocation() => appState.clearRedirectLocation();
-  void setRedirectLocationIfUnset(String location) =>
-      appState.updateNotifyOnAuthChange(false);
 }
 
 extension _GoRouterStateExtensions on GoRouterState {
@@ -374,7 +116,6 @@ class FFParameters {
     String paramName,
     ParamType type, [
     bool isList = false,
-    List<String>? collectionNamePath,
   ]) {
     if (futureParamValues.containsKey(paramName)) {
       return futureParamValues[paramName];
@@ -388,8 +129,11 @@ class FFParameters {
       return param;
     }
     // Return serialized value.
-    return deserializeParam<T>(param, type, isList,
-        collectionNamePath: collectionNamePath);
+    return deserializeParam<T>(
+      param,
+      type,
+      isList,
+    );
   }
 }
 
@@ -413,19 +157,6 @@ class FFRoute {
   GoRoute toRoute(AppStateNotifier appStateNotifier) => GoRoute(
         name: name,
         path: path,
-        redirect: (context, state) {
-          if (appStateNotifier.shouldRedirect) {
-            final redirectLocation = appStateNotifier.getRedirectLocation();
-            appStateNotifier.clearRedirectLocation();
-            return redirectLocation;
-          }
-
-          if (requireAuth && !appStateNotifier.loggedIn) {
-            appStateNotifier.setRedirectLocationIfUnset(state.location);
-            return '/createAccount';
-          }
-          return null;
-        },
         pageBuilder: (context, state) {
           final ffParams = FFParameters(state, asyncParams);
           final page = ffParams.hasFutures
@@ -434,17 +165,7 @@ class FFRoute {
                   builder: (context, _) => builder(context, ffParams),
                 )
               : builder(context, ffParams);
-          final child = appStateNotifier.loading
-              ? Center(
-                  child: SizedBox(
-                    width: 50.0,
-                    height: 50.0,
-                    child: CircularProgressIndicator(
-                      color: FlutterFlowTheme.of(context).primary,
-                    ),
-                  ),
-                )
-              : PushNotificationsHandler(child: page);
+          final child = page;
 
           final transitionInfo = state.transitionInfo;
           return transitionInfo.hasTransition
